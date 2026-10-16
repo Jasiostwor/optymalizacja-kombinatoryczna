@@ -23,7 +23,7 @@ void generuj(const string& nazwaPliku, int m, int n, int minCzas, int maxCzas) {
 
 int main() {
     generuj("maly_test.txt", 5, 20, 1, 50);      
-    generuj("sredni_test.txt", 30, 61, 30, 60); 
+    generuj("sredni_test.txt", 20, 100, 30, 60); 
     
     return 0;
 }
