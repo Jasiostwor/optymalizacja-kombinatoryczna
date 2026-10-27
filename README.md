@@ -1,1 +1,1 @@
-# optymalizacja-kombinatoryczna
+projekt optymalizacja kombinatoryczna
