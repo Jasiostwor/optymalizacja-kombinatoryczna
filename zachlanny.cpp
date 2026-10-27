@@ -6,7 +6,7 @@
 using namespace std;
 
 int main() {
-    ifstream plik("m30.txt");
+    ifstream plik("dane.txt");
     if (!plik.is_open()) {
         cerr << "Nie udalo sie otworzyc pliku dane.txt!" << endl;
         return 1;
@@ -51,10 +51,10 @@ int main() {
     cout << "Zakonczono szeregowanie zadan." << endl;
     cout << "Maksymalny czas pracy procesora (makespan): " << czas_zakonczenia << endl;
     
-    cout << "\nSzczegolowe obciazenie poszczegolnych procesorow:" << endl;
-    for (int j = 0; j < liczba_procesorow; j++) {
-        cout << "Procesor " << j + 1 << ": " << procesory[j] << " jednostek czasu" << endl;
-    }
+    // cout << "\nSzczegolowe obciazenie poszczegolnych procesorow:" << endl;
+    // for (int j = 0; j < liczba_procesorow; j++) {
+    //     cout << "Procesor " << j + 1 << ": " << procesory[j] << " jednostek czasu" << endl;
+    // }
 
     return 0;
 }
