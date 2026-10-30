@@ -1,0 +1,205 @@
+
+#include <iostream>
+#include <vector>
+#include <algorithm>
+#include <fstream>
+
+using namespace std;
+
+int main() {
+
+    // Wczytywanie danych z pliku
+    ifstream plik("dane.txt");
+
+    if (!plik.is_open()) {
+        cerr << "Nie udalo sie otworzyc pliku dane.txt!" << endl;
+        return 1;
+    }
+
+    int liczba_procesorow, liczba_zadan;
+
+    plik >> liczba_procesorow >> liczba_zadan;
+
+    vector<int> zadania(liczba_zadan);
+
+    for (int i = 0; i < liczba_zadan; i++) {
+        plik >> zadania[i];
+    }
+
+    plik.close();
+
+    // ------------------------------------
+    // 1. ROZWIAZANIE POCZATKOWE - ZACHLANNE
+    // ------------------------------------
+
+    vector<int> procesory(liczba_procesorow, 0);
+
+    // Przydzial[i] oznacza numer procesora zadania i
+    vector<int> przydzial(liczba_zadan);
+
+    for (int i = 0; i < liczba_zadan; i++) {
+
+        int index_najluzniejszego = 0;
+
+        for (int j = 1; j < liczba_procesorow; j++) {
+            if (procesory[j] < procesory[index_najluzniejszego]) {
+                index_najluzniejszego = j;
+            }
+        }
+
+        procesory[index_najluzniejszego] += zadania[i];
+
+        przydzial[i] = index_najluzniejszego;
+    }
+
+    // Obliczenie poczatkowego makespanu
+    int poczatkowy_makespan = *max_element(
+        procesory.begin(), procesory.end()
+    );
+
+    // ------------------------------------
+    // 2. TABU SEARCH - PARAMETRY
+    // ------------------------------------
+
+    int liczba_iteracji = 2000;
+    int dlugosc_tabu = 7;
+
+    // Zapamietanie najlepszego rozwiazania
+    vector<int> najlepszy_przydzial = przydzial;
+    vector<int> najlepsze_procesory = procesory;
+
+    int najlepszy_makespan = poczatkowy_makespan;
+
+    // Tablica przechowujaca ruchy tabu
+    // tabu[zadanie][procesor] oznacza, do ktorej iteracji
+    // nie wolno przenosic zadania na dany procesor
+    vector<vector<int>> tabu(
+        liczba_zadan,
+        vector<int>(liczba_procesorow, 0)
+    );
+
+    // ------------------------------------
+    // 3. GLOWNA PETLA TABU SEARCH
+    // ------------------------------------
+
+    for (int iteracja = 1; iteracja <= liczba_iteracji; iteracja++) {
+
+        int najlepszy_makespan_sasiada = 2147483647;
+
+        int wybrane_zadanie = -1;
+        int stary_procesor = -1;
+        int nowy_procesor = -1;
+
+        // Sprawdzamy mozliwe przeniesienia zadan
+        for (int i = 0; i < liczba_zadan; i++) {
+
+            int aktualny_procesor = przydzial[i];
+
+            for (int j = 0; j < liczba_procesorow; j++) {
+
+                // Nie przenosimy zadania na ten sam procesor
+                if (j == aktualny_procesor) {
+                    continue;
+                }
+
+                // Tymczasowe przeniesienie zadania
+                procesory[aktualny_procesor] -= zadania[i];
+                procesory[j] += zadania[i];
+
+                // Obliczenie makespanu nowego rozwiazania
+                int nowy_makespan = *max_element(
+                    procesory.begin(), procesory.end()
+                );
+
+                // Sprawdzenie, czy ruch jest zabroniony
+                bool ruch_tabu = (tabu[i][j] > iteracja);
+
+                // Kryterium aspiracji:
+                // mozemy zlamac tabu, jesli znalezlismy
+                // rozwiazanie lepsze od najlepszego globalnego
+                bool aspiracja = (nowy_makespan < najlepszy_makespan);
+
+                // Wybieramy najlepszego dozwolonego sasiada
+                if ((!ruch_tabu || aspiracja) &&
+                    nowy_makespan < najlepszy_makespan_sasiada) {
+
+                    najlepszy_makespan_sasiada = nowy_makespan;
+
+                    wybrane_zadanie = i;
+                    stary_procesor = aktualny_procesor;
+                    nowy_procesor = j;
+                }
+
+                // Cofamy tymczasowe przeniesienie
+                procesory[j] -= zadania[i];
+                procesory[aktualny_procesor] += zadania[i];
+            }
+        }
+
+        // Jezeli nie znaleziono dozwolonego ruchu
+        if (wybrane_zadanie == -1) {
+            break;
+        }
+
+        // ------------------------------------
+        // 4. WYKONANIE WYBRANEGO RUCHU
+        // ------------------------------------
+
+        int zadanie = wybrane_zadanie;
+
+        // Przenosimy zadanie na nowy procesor
+        przydzial[zadanie] = nowy_procesor;
+
+        procesory[stary_procesor] -= zadania[zadanie];
+        procesory[nowy_procesor] += zadania[zadanie];
+
+        // Dodajemy ruch do listy tabu
+        // Nie mozna od razu przeniesc zadania z powrotem
+        tabu[zadanie][stary_procesor] = iteracja + dlugosc_tabu;
+
+        // ------------------------------------
+        // 5. ZAPISANIE NAJLEPSZEGO WYNIKU
+        // ------------------------------------
+
+        int aktualny_makespan = *max_element(
+            procesory.begin(), procesory.end()
+        );
+
+        if (aktualny_makespan < najlepszy_makespan) {
+
+            najlepszy_makespan = aktualny_makespan;
+
+            najlepszy_przydzial = przydzial;
+            najlepsze_procesory = procesory;
+        }
+    }
+
+    // ------------------------------------
+    // 6. WYSWIETLENIE WYNIKOW
+    // ------------------------------------
+
+    cout << "Zakonczono szeregowanie zadan." << endl;
+
+    cout << "\nWynik algorytmu zachlannego: "
+         << poczatkowy_makespan << endl;
+
+    cout << "Najlepszy wynik Tabu Search: "
+         << najlepszy_makespan << endl;
+
+    cout << "\nObciazenie poszczegolnych procesorow:" << endl;
+
+    for (int i = 0; i < liczba_procesorow; i++) {
+        cout << "Procesor " << i + 1 << ": "
+             << najlepsze_procesory[i] << endl;
+    }
+
+    cout << "\nPrzydzial zadan:" << endl;
+
+    for (int i = 0; i < liczba_zadan; i++) {
+        cout << "Zadanie " << i + 1
+             << " -> Procesor "
+             << najlepszy_przydzial[i] + 1 << endl;
+    }
+
+    return 0;
+}
